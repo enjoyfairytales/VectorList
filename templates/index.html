@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ t("app_title") }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">{{ t("eyebrow") }}</p>
+          <h1>{{ t("app_title") }}</h1>
+          <p class="subtitle">{{ t("subtitle") }}</p>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">{{ t("total") }}</span>
+            <span class="stat-value">{{ total_count }}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">{{ t("showing") }}</span>
+            <span class="stat-value">{{ todos|length }}</span>
+          </div>
+          <div class="lang-switch" aria-label="{{ t("language") }}">
+            <a
+              class="lang-chip {% if lang == 'en' %}active{% endif %}"
+              href="/?lang=en&status={{ status }}{% if q %}&q={{ q }}{% endif %}{% if created_date %}&date={{ created_date }}{% endif %}"
+              >{{ t("lang_en") }}</a>
+            <a
+              class="lang-chip {% if lang == 'zh-CN' %}active{% endif %}"
+              href="/?lang=zh-CN&status={{ status }}{% if q %}&q={{ q }}{% endif %}{% if created_date %}&date={{ created_date }}{% endif %}"
+              >{{ t("lang_zh") }}</a>
+          </div>
+        </div>
+      </header>
+
+      <section class="controls">
+        <form class="search" method="get" action="/">
+          <input
+            type="text"
+            name="q"
+            placeholder="{{ t("search_placeholder") }}"
+            value="{{ q }}"
+            aria-label="{{ t("search_aria") }}"
+          />
+          <input
+            class="date-input"
+            type="date"
+            name="date"
+            value="{{ created_date }}"
+            aria-label="{{ t("date_aria") }}"
+          />
+          <input type="hidden" name="status" value="{{ status }}" />
+          <input type="hidden" name="lang" value="{{ lang }}" />
+          <button type="submit" class="btn ghost">{{ t("search_button") }}</button>
+        </form>
+
+        <div class="filters">
+          <a
+            class="chip {% if status == 'all' %}active{% endif %}"
+            href="/?status=all&lang={{ lang }}{% if q %}&q={{ q }}{% endif %}{% if created_date %}&date={{ created_date }}{% endif %}"
+            >{{ t("filter_all") }}</a>
+          <a
+            class="chip {% if status == 'active' %}active{% endif %}"
+            href="/?status=active&lang={{ lang }}{% if q %}&q={{ q }}{% endif %}{% if created_date %}&date={{ created_date }}{% endif %}"
+            >{{ t("filter_active") }}</a>
+          <a
+            class="chip {% if status == 'completed' %}active{% endif %}"
+            href="/?status=completed&lang={{ lang }}{% if q %}&q={{ q }}{% endif %}{% if created_date %}&date={{ created_date }}{% endif %}"
+            >{{ t("filter_completed") }}</a>
+        </div>
+      </section>
+
+      <section class="panel">
+        <form class="new-todo" method="post" action="/todos">
+          <input type="hidden" name="next" value="{{ request.full_path }}" />
+          <input type="hidden" name="lang" value="{{ lang }}" />
+          <input
+            type="text"
+            name="title"
+            placeholder="{{ t("add_placeholder") }}"
+            aria-label="{{ t("add_aria") }}"
+            required
+          />
+          <button type="submit" class="btn">{{ t("add_button") }}</button>
+        </form>
+
+        <div class="list">
+          {% if todos|length == 0 %}
+            <div class="empty">
+              <p>{{ t("empty_title") }}</p>
+              <p class="muted">{{ t("empty_subtitle") }}</p>
+            </div>
+          {% endif %}
+
+          {% for todo in todos %}
+            <article class="todo-item" data-todo-id="{{ todo.id }}">
+              <div class="todo-view">
+                <div class="todo-main">
+                  <span class="status {% if todo.completed %}done{% endif %}">
+                    {% if todo.completed %}{{ t("status_completed") }}{% else %}{{ t("status_active") }}{% endif %}
+                  </span>
+                  <h3 class="title {% if todo.completed %}completed{% endif %}">
+                    {{ todo.title }}
+                  </h3>
+                  <p class="meta">{{ t("created_label") }} {{ todo.created_at }}</p>
+                </div>
+                <div class="todo-actions">
+                  <form method="post" action="/todos/{{ todo.id }}/toggle">
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    <input type="hidden" name="lang" value="{{ lang }}" />
+                    <button type="submit" class="btn ghost">
+                      {% if todo.completed %}{{ t("mark_active_button") }}{% else %}{{ t("complete_button") }}{% endif %}
+                    </button>
+                  </form>
+                  <button type="button" class="btn" data-action="edit-open">
+                    {{ t("edit_button") }}
+                  </button>
+                  <form
+                    method="post"
+                    action="/todos/{{ todo.id }}/delete"
+                    data-confirm="{{ t("confirm_delete") }}"
+                  >
+                    <input type="hidden" name="next" value="{{ request.full_path }}" />
+                    <input type="hidden" name="lang" value="{{ lang }}" />
+                    <button type="submit" class="btn danger">{{ t("delete_button") }}</button>
+                  </form>
+                </div>
+              </div>
+
+              <form class="todo-edit" method="post" action="/todos/{{ todo.id }}/edit">
+                <input type="hidden" name="next" value="{{ request.full_path }}" />
+                <input type="hidden" name="lang" value="{{ lang }}" />
+                <input type="text" name="title" value="{{ todo.title }}" required />
+                <div class="todo-actions">
+                  <button type="submit" class="btn">{{ t("save_button") }}</button>
+                  <button type="button" class="btn ghost" data-action="edit-cancel">
+                    {{ t("cancel_button") }}
+                  </button>
+                </div>
+              </form>
+
+              <div class="history">
+                <p class="history-title">{{ t("history_title") }}</p>
+                <ul>
+                  {% for entry in todo.history %}
+                    <li>
+                      <span class="history-time">{{ entry.ts }}</span>
+                      <span class="history-event">{{ entry.event }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
